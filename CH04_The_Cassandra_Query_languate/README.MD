@@ -30,3 +30,16 @@ Because Cassandra uses an append model, there is no fundamental difference betwe
 For this reason, it is often said that Cassandra supports upsert, meaning that inserts and updates are treated the same,
 
 
+## Columns
+
+### TIMESTAMPS
+Each time you write data into Cassandra, a timestamp, in microseconds, is generated for each column value that is inserted or updated. Internally, Cassandra uses these timestamps for resolving any conflicting changes that are made to the same value, in what is frequently referred to as a last write wins approach.
+
+```
+SELECT first_name, last_name, title, writetime(title) FROM user;
+```
+
+### TIME TO LIVE (TTL)
+One very powerful feature that Cassandra provides is the ability to expire data that is no longer needed. This expiration is very flexible and works at the level of individual column values.
+
+
