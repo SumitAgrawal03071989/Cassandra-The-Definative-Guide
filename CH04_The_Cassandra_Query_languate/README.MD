@@ -43,3 +43,87 @@ SELECT first_name, last_name, title, writetime(title) FROM user;
 One very powerful feature that Cassandra provides is the ability to expire data that is no longer needed. This expiration is very flexible and works at the level of individual column values.
 
 
+## CQL Types
+CQL supports a flexible set of data types, including simple character and numeric types, collections, and user-defined types. 
+### Numeric Data Types
+
+int
+A 32-bit signed integer (as in Java)
+
+bigint
+A 64-bit signed long integer (equivalent to a Java long)
+
+smallint
+A 16-bit signed integer (equivalent to a Java short)
+
+tinyint
+An 8-bit signed integer (as in Java)
+
+varint
+A variable precision signed integer (equivalent to java.math.BigInteger)
+
+float
+A 32-bit IEEE-754 floating point (as in Java)
+
+double
+A 64-bit IEEE-754 floating point (as in Java)
+
+decimal
+A variable precision decimal (equivalent to java.math.BigDecimal)
+
+### Textual Data Types
+text, varchar
+
+### Time and Identity Data Types
+timestamp
+date, time
+
+uuid
+A universally unique identifier (UUID) is a 128-bit value
+The uuid type is often used as a surrogate key, either by itself or in combination with other values.
+Because UUIDs are of a finite length, they are not absolutely guaranteed to be unique. However, most operating systems and programming languages provide utilities to generate IDs that provide adequate uniqueness. You can also obtain a Type 4 UUID value via the CQL uuid() function and use this value in an INSERT or UPDATE.
+
+
+timeuuid
+This is a Type 1 UUID, which is based on the MAC address of the computer, the system time, and a sequence number used to prevent duplicates. This type is frequently used as a conflict-free timestamp. CQL provides several convenience functions for interacting with the timeuuid type: now(), dateOf(), and unixTimestampOf().
+The availability of these convenience functions is one reason why timeuuid tends to be used more frequently than uuid.
+
+## PRIMARY KEYS ARE FOREVER
+After you create a table, there is no way to modify the primary key, because this controls how data is distributed within the cluster, and even more importantly, how it is stored on disk.
+
+## Other Simple Data Types
+boolean
+blob ( A binary large object (blob) )
+
+inet
+This type represents IPv4 or IPv6 internet addresses.
+
+counter
+The counter data type provides a 64-bit signed integer, whose value cannot be set directly, but only incremented or decremented. Cassandra is one of the few databases that provides race-free increments across data centers. Counters are frequently used for tracking statistics such as numbers of page views, tweets, log messages, and so on. The counter type has some special restrictions. It cannot be used as part of a primary key. If a counter is used, all of the columns other than primary key columns must be counters.
+
+```
+CREATE TABLE user_visits (
+  user_id uuid PRIMARY KEY, visits counter);
+
+UPDATE user_visits SET visits = visits + 1
+  WHERE user_id=ebf87fee-b372-4104-8a22-00c1252e3e05;
+
+SELECT visits from user_visits WHERE
+  user_id=ebf87fee-b372-4104-8a22-00c1252e3e05;
+```
+
+### A WARNING ABOUT IDEMPOTENCE
+The counter increment and decrement operators are not idempotent. An idempotent operation is one that will produce the same result when executed multiple times. Incrementing and decrementing are not idempotent because executing them multiple times could result in different results as the stored value is increased or decreased.
+
+To see how this is possible, consider that Cassandra is a distributed system in which interactions over a network may fail when a node fails to respond to a request indicating success or failure. A typical client response to this request is to retry the operation. The result of retrying a nonidempotent operation such as incrementing a counter is not predictable. Since it is not known whether the first attempt succeeded, the value may have been incremented twice. This is not a fatal flaw, but something you’ll want to be aware of when using counters.
+
+The only other CQL operation that is not idempotent besides incrementing or decrementing a counter is adding an item to a list, which we’ll discuss next.
+
+# Collections
+
+
+
+
+
+
+
