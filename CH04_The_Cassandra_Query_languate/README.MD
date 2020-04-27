@@ -121,6 +121,114 @@ The only other CQL operation that is not idempotent besides incrementing or decr
 
 # Collections
 
+## SET
+
+The set data type stores a collection of elements. The elements are unordered when stored, but are returned in sorted order. 
+
+```
+ALTER TABLE user ADD emails set<text>;
+
+UPDATE user SET emails = { 'mary@example.com' } WHERE first_name = 'Mary' AND last_name = 'Rodriguez';
+
+SELECT emails FROM user WHERE first_name = 'Mary' AND last_name = 'Rodriguez';
+
+UPDATE user SET emails = emails + {'mary.rodriguez.AZ@gmail.com' } WHERE first_name = 'Mary' AND last_name = 'Rodriguez';
+```
+
+### OTHER SET OPERATIONS
+
+You can also clear items from the set by using the subtraction operator: SET emails = emails - {'mary@example.com'}.
+Alternatively, you could clear out the entire set by using the empty set notation: SET emails = {}.
+
+
+## LIST
+
+The list data type contains an ordered list of elements.
+
+```
+ALTER TABLE user ADD phone_numbers list<text>;
+
+UPDATE user SET phone_numbers = ['1-800-999-9999' ] WHERE first_name = 'Mary' AND last_name = 'Rodriguez';
+
+SELECT phone_numbers FROM user WHERE first_name = 'Mary' AND last_name = 'Rodriguez';
+
+UPDATE user SET phone_numbers = phone_numbers + [ '480-111-1111' ]  WHERE first_name = 'Mary' AND last_name = 'Rodriguez';
+
+You can replace an individual item in the list when you reference it by its index:
+
+
+UPDATE user SET phone_numbers[1] = '480-111-1111' WHERE first_name = 'Mary' AND last_name = 'Rodriguez';
+
+```
+
+### EXPENSIVE LIST OPERATIONS
+Because a list stores values according to position, there is the potential that updating or deleting a specific item in a list could require Cassandra to read the entire list, perform the requested operation, and write out the entire list again. This could be an expensive operation if you have a large number of values in the list. For this reason, many users prefer to use the set or map types, especially in cases where there is the potential to update the contents of the collection.
+
+
+## MAP
+The map data type contains a collection of key-value pairs. The keys and the values can be of any type except counter
+
+```
+ALTER TABLE user ADD login_sessions map<timeuuid, int>;
+
+UPDATE user SET login_sessions =
+  { now(): 13, now(): 18}
+  WHERE first_name = 'Mary' AND last_name = 'Rodriguez';
+
+SELECT login_sessions FROM user
+WHERE first_name = 'Mary' AND last_name = 'Rodriguez';
+```
+
+## Tuples
+
+```
+ALTER TABLE user ADD address tuple<text, text, text, int>;
+UPDATE user SET address = ('7712 E. Broadway', 'Tucson', 'AZ', 85715 ) WHERE first_name = 'Mary' AND last_name = 'Rodriguez';
+ALTER TABLE user DROP address;
+```
+
+## User-Defined Types
+
+Cassandra gives you a way to define your own types to extend its data model. These user-defined types (UDTs) are easier to use than tuples since you can specify the values by name rather than position.
+
+```
+CREATE TYPE address (
+  street text,
+  city text,
+  state text,
+  zip_code int);
+
+ALTER TABLE user ADD
+addresses map<text, address>;
+
+InvalidRequest: code=2200 [Invalid query] message="Non-frozen
+  collections are not allowed inside collections: map<text,
+  address>"
+```
+
+What is going on here? It turns out that a user-defined data type is considered a collection, as its implementation is similar to a set, list, or map. You’ve asked Cassandra to nest one collection inside another.
+
+### FREEZING COLLECTIONS
+
+Freezing is a concept that was introduced as a forward compatibility mechanism. For now, you can nest a collection within another collection by marking it as frozen, which means that Cassandra will store that value as a blob of binary data. In the future, when nested collections are fully supported, there will be a mechanism to “unfreeze” the nested collections, allowing the individual attributes to be accessed.
+
+You can also use a collection as a primary key if it is frozen.
+
+
+```
+ALTER TABLE user ADD addresses map<text,
+  frozen<address>>;
+
+UPDATE user SET addresses = addresses +
+  {'home': { street: '7712 E. Broadway', city: 'Tucson',
+  state: 'AZ', zip_code: 85715 } }
+  WHERE first_name = 'Mary' AND last_name = 'Rodriguez';
+
+  
+```
+
+
+
 
 
 
